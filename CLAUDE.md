@@ -1,111 +1,129 @@
 ---
-description: Use Bun instead of Node.js, npm, pnpm, or vite.
-globs: "*.ts, *.tsx, *.html, *.css, *.js, *.jsx, package.json"
-alwaysApply: false
+description: zenn-cliとBunを使用したZenn記事・書籍管理
+globs: "articles/**.md, books/**/**.md, books/**/config.yaml, package.json"
+alwaysApply: true
 ---
 
-Default to using Bun instead of Node.js.
+このリポジトリはzenn-cliを使用してZennの記事と書籍を管理します。パッケージマネージャーとしてBunを使用します。
 
-- Use `bun <file>` instead of `node <file>` or `ts-node <file>`
-- Use `bun test` instead of `jest` or `vitest`
-- Use `bun build <file.html|file.ts|file.css>` instead of `webpack` or `esbuild`
-- Use `bun install` instead of `npm install` or `yarn install` or `pnpm install`
-- Use `bun run <script>` instead of `npm run <script>` or `yarn run <script>` or `pnpm run <script>`
-- Use `bunx <package> <command>` instead of `npx <package> <command>`
-- Bun automatically loads .env, so don't use dotenv.
+## パッケージマネージャー: Bun
 
-## APIs
+npm/yarn/pnpmの代わりにBunコマンドを使用してください:
 
-- `Bun.serve()` supports WebSockets, HTTPS, and routes. Don't use `express`.
-- `bun:sqlite` for SQLite. Don't use `better-sqlite3`.
-- `Bun.redis` for Redis. Don't use `ioredis`.
-- `Bun.sql` for Postgres. Don't use `pg` or `postgres.js`.
-- `WebSocket` is built-in. Don't use `ws`.
-- Prefer `Bun.file` over `node:fs`'s readFile/writeFile
-- Bun.$`ls` instead of execa.
+- `bun install` - 依存関係のインストール
+- `bun run <script>` - package.jsonのスクリプトを実行
+- `bunx <package> <command>` - パッケージの実行（npxと同等）
 
-## Testing
+## Zenn CLI コマンド
 
-Use `bun test` to run tests.
+### 新規コンテンツの作成
 
-```ts#index.test.ts
-import { test, expect } from "bun:test";
+```bash
+# 新規記事を作成
+bun run new:article
 
-test("hello world", () => {
-  expect(1).toBe(1);
-});
+# 新規書籍を作成
+bun run new:book
 ```
 
-## Frontend
+### ローカルプレビュー
 
-Use HTML imports with `Bun.serve()`. Don't use `vite`. HTML imports fully support React, CSS, Tailwind.
-
-Server:
-
-```ts#index.ts
-import index from "./index.html"
-
-Bun.serve({
-  routes: {
-    "/": index,
-    "/api/users/:id": {
-      GET: (req) => {
-        return new Response(JSON.stringify({ id: req.params.id }));
-      },
-    },
-  },
-  // optional websocket support
-  websocket: {
-    open: (ws) => {
-      ws.send("Hello, world!");
-    },
-    message: (ws, message) => {
-      ws.send(message);
-    },
-    close: (ws) => {
-      // handle close
-    }
-  },
-  development: {
-    hmr: true,
-    console: true,
-  }
-})
+```bash
+# プレビューサーバーを起動（http://localhost:8000）
+bun run preview
 ```
 
-HTML files can import .tsx, .jsx or .js files directly and Bun's bundler will transpile & bundle automatically. `<link>` tags can point to stylesheets and Bun's CSS bundler will bundle.
+### コンテンツ一覧
 
-```html#index.html
-<html>
-  <body>
-    <h1>Hello, world!</h1>
-    <script type="module" src="./frontend.tsx"></script>
-  </body>
-</html>
+```bash
+# 全記事を一覧表示
+bun run list:articles
+
+# 全書籍を一覧表示
+bun run list:books
 ```
 
-With the following `frontend.tsx`:
+## ファイル構造
 
-```tsx#frontend.tsx
-import React from "react";
-import { createRoot } from "react-dom/client";
-
-// import .css files directly and it works
-import './index.css';
-
-const root = createRoot(document.body);
-
-export default function Frontend() {
-  return <h1>Hello, world!</h1>;
-}
-
-root.render(<Frontend />);
+**記事:** `articles/` ディレクトリ直下にMarkdownファイルを配置
+```
+articles/
+├── my-first-article.md
+└── another-article.md
 ```
 
-Then, run index.ts
-
-```sh
-bun --hot ./index.ts
+**書籍:** 書籍ごとにディレクトリを作成し、config.yamlと章ファイルを配置
+```
+books/
+└── my-book-slug/
+    ├── config.yaml
+    ├── cover.png
+    ├── chapter1.md
+    └── chapter2.md
 ```
 
-For more information, read the Bun API docs in `node_modules/bun-types/docs/**.mdx`.
+## 記事のフロントマター
+
+各記事ファイルの先頭に必要なフィールド:
+
+```yaml
+---
+title: "記事のタイトル"
+emoji: "📝"
+type: "tech" # または "idea"
+topics: ["zenn", "typescript", "bun"] # 最大5個
+published: false # 公開する場合はtrue
+---
+```
+
+オプションフィールド:
+- `published_at: "2026-02-09"` または `"2026-02-09 10:00"` （JST タイムゾーン）
+
+## 書籍の設定
+
+各書籍ディレクトリに `config.yaml` を作成:
+
+```yaml
+title: "書籍のタイトル"
+summary: "簡潔な説明"
+topics: ["topic1", "topic2"] # 最大5個
+published: false
+price: 0 # 0（無料）または 200-5000（100円単位）
+chapters:
+  - chapter1 # .md拡張子なしのスラグ
+  - chapter2
+```
+
+章のフロントマター（各.mdファイル内）:
+
+```yaml
+---
+title: "章のタイトル"
+free: false # 有料書籍の場合のみ意味を持つ
+---
+```
+
+## スラグの命名規則
+
+- **使用可能文字:** a-z, 0-9, ハイフン (-), アンダースコア (_) のみ
+- **文字数:**
+  - 記事: 1-50文字
+  - 書籍/章: 12-50文字
+- **重要:** 公開後はスラグを変更できません（変更すると新しい記事/書籍として扱われます）
+
+## ワークフロー
+
+1. **作成:** `bun run new:article` または `bun run new:book`
+2. **編集:** 生成されたMarkdownファイルにコンテンツを記述
+3. **プレビュー:** `bun run preview` でlocalhost:8000にアクセス
+4. **コミット:** `git add . && git commit -m "記事を追加"`
+5. **公開:** GitHubのmainブランチにプッシュ
+6. **デプロイ:** Zennが自動的に同期して変更をデプロイ
+
+## 重要な注意事項
+
+- 記事/書籍のトピックは最大5個まで
+- `published: true` でZennに公開されます
+- プレビューサーバーのデフォルトポートは8000
+- `published_at` は日本標準時（JST）を使用
+- GitHub連携にはZennダッシュボードでリポジトリ接続が必要
