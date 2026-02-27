@@ -2,7 +2,7 @@
 title: "TanStack Start の前に知っておきたい TanStack Router の基本"
 emoji: "🏝️"
 type: "tech" # tech: 技術記事 / idea: アイデア
-topics: ["tanstack", "tanstackrouter", "tanstackstart"]
+topics: ["tanstack", "tanstackrouter", "tanstackstart", "typescript", "nextjs"]
 published: true
 ---
 
